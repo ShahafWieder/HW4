@@ -57,7 +57,8 @@ public class Database {
 
     /**
      * Acquires a read lock, blocking until it can be obtained.
-     * If the current thread is interrupted while waiting, a RuntimeException is thrown.
+     *
+     * @throws RuntimeException if the current thread is interrupted while waiting.
      */
     public synchronized void readAcquire(){
         while (isWriting || activeReaders >= maxNumOfReaders) {
@@ -72,7 +73,8 @@ public class Database {
 
     /**
      * Releases a read lock and notifies waiting threads.
-     * Throws an IllegalMonitorStateException if there are no active readers.
+     *
+     * @throws IllegalMonitorStateException if there are no active readers.
      */
     public synchronized void readRelease() {
         if (activeReaders <= 0) {
@@ -86,7 +88,8 @@ public class Database {
 
     /**
      * Acquires a write lock, blocking until it can be obtained.
-     * If the current thread is interrupted while waiting, a RuntimeException is thrown.
+     *
+     * @throws RuntimeException if the current thread is interrupted while waiting.
      */
     public synchronized void writeAcquire(){
         while (isWriting || activeReaders > 0) {
@@ -115,7 +118,8 @@ public class Database {
 
     /**
      * Releases a write lock, notifies waiting threads, and sets the isWriting flag to false.
-     * Throws an IllegalMonitorStateException if the current thread is not the one currently writing.
+     *
+     * @throws IllegalMonitorStateException if the current thread is not the one currently writing.
      */
     public synchronized void writeRelease() {
         if (!isWriting) {
