@@ -1,7 +1,6 @@
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class Database {
     private Map<String, String> data;
 

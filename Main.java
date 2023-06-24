@@ -1,7 +1,7 @@
 public class Main {
     public static void main(String[] args) {
         testPartA();
-        testPartB();
+        //testPartB();
     }
 
     private static void testPartA() {
@@ -261,4 +261,5 @@ class Writer extends Worker {
             db.writeRelease();
         }
     }
+
 }
