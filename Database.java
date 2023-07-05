@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.Map;
+
 /**
  * The Database class represents a simple database implementation that supports concurrent read and write operations.
  */
@@ -8,6 +9,7 @@ public class Database {
     private int maxNumOfReaders;
     private int activeReaders;
     private boolean isWriting;
+    private final Object lock = new Object();
 
     /**
      * Constructs a Database object with the specified maximum number of readers.
@@ -28,7 +30,7 @@ public class Database {
      * @param value The value to be stored in the database.
      */
     public void put(String key, String value) {
-        data.put(key, value);
+            data.put(key, value);
     }
 
     /**
@@ -38,7 +40,7 @@ public class Database {
      * @return The value associated with the key, or null if the key is not found.
      */
     public String get(String key) {
-        return data.get(key);
+            return data.get(key);
     }
 
     /**
@@ -47,12 +49,14 @@ public class Database {
      *
      * @return true if the read lock is acquired, false otherwise.
      */
-    public synchronized boolean readTryAcquire() {
-        if (!isWriting && activeReaders < maxNumOfReaders) {
-            activeReaders++;
-            return true;
+    public boolean readTryAcquire() {
+        synchronized (lock) {
+            if (!isWriting && activeReaders < maxNumOfReaders) {
+                activeReaders++;
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     /**
@@ -60,15 +64,17 @@ public class Database {
      *
      * @throws RuntimeException if the current thread is interrupted while waiting.
      */
-    public synchronized void readAcquire(){
-        while (isWriting || activeReaders >= maxNumOfReaders) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+    public void readAcquire() {
+        synchronized (lock) {
+            while (isWriting || activeReaders >= maxNumOfReaders) {
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            activeReaders++;
         }
-        activeReaders++;
     }
 
     /**
@@ -76,13 +82,15 @@ public class Database {
      *
      * @throws IllegalMonitorStateException if there are no active readers.
      */
-    public synchronized void readRelease() {
-        if (activeReaders <= 0) {
-            throw new IllegalMonitorStateException("Illegal read release attempt");
-        }
-        activeReaders--;
-        if (activeReaders == 0) {
-            notifyAll();
+    public void readRelease() {
+        synchronized (lock) {
+            if (activeReaders <= 0) {
+                throw new IllegalMonitorStateException("Illegal read release attempt");
+            }
+            activeReaders--;
+            if (activeReaders == 0) {
+                lock.notifyAll();
+            }
         }
     }
 
@@ -91,15 +99,17 @@ public class Database {
      *
      * @throws RuntimeException if the current thread is interrupted while waiting.
      */
-    public synchronized void writeAcquire(){
-        while (isWriting || activeReaders > 0) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+    public void writeAcquire() {
+        synchronized (lock) {
+            while (isWriting || activeReaders > 0) {
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            isWriting = true;
         }
-        isWriting = true;
     }
 
     /**
@@ -108,12 +118,14 @@ public class Database {
      *
      * @return true if the write lock is acquired, false otherwise.
      */
-    public synchronized boolean writeTryAcquire() {
-        if (!isWriting && activeReaders == 0) {
-            isWriting = true;
-            return true;
+    public boolean writeTryAcquire() {
+        synchronized (lock) {
+            if (!isWriting && activeReaders == 0) {
+                isWriting = true;
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     /**
@@ -121,12 +133,13 @@ public class Database {
      *
      * @throws IllegalMonitorStateException if the current thread is not the one currently writing.
      */
-    public synchronized void writeRelease() {
-        if (!isWriting) {
-            throw new IllegalMonitorStateException("Illegal write release attempt");
+    public void writeRelease() {
+        synchronized (lock) {
+            if (!isWriting) {
+                throw new IllegalMonitorStateException("Illegal write release attempt");
+            }
+            isWriting = false;
+            lock.notifyAll();
         }
-        isWriting = false;
-        notifyAll();
     }
-
 }
